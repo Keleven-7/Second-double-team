@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sudoku Generator</title>
+    <style>
+        body {
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .sudoku-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .sudoku {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        td {
+            border-style: solid; /* 设置边框样式为实线 */
+            border-width: 1px; /* 设置边框宽度为1像素 */
+            width: 30px;
+            height: 30px;
+            text-align: center;
+        }
+
+        td:nth-child(3n+1) { /* 每一行第一个小格子，左边界线加粗 */
+            border-left-width: 2px;
+        }
+
+        td:nth-child(3n) { /* 每一行最后一个小格子，右边界线加粗 */
+            border-right-width: 2px;
+        }
+
+        tr:nth-child(3n+1) td { /* 每一列第一个小格子，上边界线加粗 */
+            border-top-width: 2px;
+        }
+
+        tr:nth-child(3n) td { /* 每一列最后一个小格子，下边界线加粗 */
+            border-bottom-width: 2px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .solution {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sudoku Generator</h1>
+    <button onclick="generateSudoku()">Generate Sudoku</button>
+    <button id="solveButton" onclick="solveSudoku()">Solve Sudoku</button>
+    <div class="sudoku-container">
+        {% for sudoku in sudokus %}
+        <div class="sudoku">
+            <h2>Sudoku {{ loop.index }}</h2>
+            <table>
+                {% for row in sudoku %}
+                <tr>
+                    {% for num in row %}
+                    <td>{{ num if num != 0 else '' }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function generateSudoku() {
+        fetch('/generate')
+        .then((response) => response.json())
+        .then((data) => {
+            const sudokusContainer = document.querySelector('.sudoku-container');
+            const sudokuDiv = document.createElement('div');
+            sudokuDiv.className = 'sudoku';
+
+            // 构建数独表格
+            const table = document.createElement('table');
+            for (let i = 0; i < data.sudoku.length; i++) {
+                const row = document.createElement('tr');
+                for (let j = 0; j < data.sudoku[i].length; j++) {
+                    const cell = document.createElement('td');
+                    cell.innerText = data.sudoku[i][j];
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+
+            sudokuDiv.appendChild(table);
+            sudokusContainer.appendChild(sudokuDiv);
+        })
+        .catch((error) => console.log(error));
+        location.reload()
+        solveButton.disabled = false;
+}
+
+
+       function solveSudoku() {
+        const solveButton = document.querySelector('#solveButton'); // 获取"Solve Sudoku"按钮元素
+        solveButton.disabled = true; // 禁用按钮
+        const sudokus = document.querySelectorAll('.sudoku');
+        sudokus.forEach((sudoku) => {
+        const table = sudoku.querySelector('table');
+        const rows = table.querySelectorAll('tr');
+        const values = [];
+
+        rows.forEach((row) => {
+            const cells = row.querySelectorAll('td');
+            const rowValues = [];
+            cells.forEach((cell) => {
+                const num = parseInt(cell.innerText, 10) || 0;
+                rowValues.push(num);
+            });
+            values.push(rowValues);
+        });
+
+        fetch('/solve', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sudoku: values }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                const solvedSudoku = data.sudoku;
+                const solutionDiv = document.createElement('div');
+                solutionDiv.className = 'solution';
+
+                // 添加标题元素
+                const title = document.createElement('h3');
+                title.innerText = 'Correct Answer';
+                solutionDiv.appendChild(title);
+
+                // 构建数独表格
+                const solutionTable = document.createElement('table');
+                for (let i = 0; i < solvedSudoku.length; i++) {
+                    const row = document.createElement('tr');
+                    for (let j = 0; j < solvedSudoku[i].length; j++) {
+                        const cell = document.createElement('td');
+                        cell.innerText = solvedSudoku[i][j];
+                        row.appendChild(cell);
+                    }
+                    solutionTable.appendChild(row);
+                }
+
+                solutionDiv.appendChild(solutionTable);
+                sudoku.appendChild(solutionDiv);
+            })
+            .catch((error) => console.log(error));
+    });
+}
+
+    </script>
+</body>
+
+</html>
